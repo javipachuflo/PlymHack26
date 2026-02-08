@@ -206,7 +206,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0.70710665, y: 0, z: 0, w: 0.70710695}
-  m_LocalPosition: {x: 8.969875, y: 21.871338, z: 9.524535}
+  m_LocalPosition: {x: 35.965904, y: 49.17972, z: 23.504713}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -406,8 +406,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 447a5c33a7f22014ebe7d7ae89985611, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  width: 20
-  height: 20
+  width: 150
+  height: 150
   tileSize: 1
   tilePrefab: {fileID: 310006718989425866, guid: f65f0123bb6d95745820bb1dcc877ee1, type: 3}
 --- !u!4 &695832610

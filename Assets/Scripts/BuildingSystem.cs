@@ -7,48 +7,63 @@ public class BuildingSystem : MonoBehaviour
     public Camera mainCamera;
 
     [Header("Building to Place")]
-    // Drag your Building Prefab here for now. 
-    // Later, you can change this variable via UI buttons to swap buildings.
     public GameObject currentBuildingPrefab;
 
     private void Update()
     {
-        // 0 is Left Click
+        // Left Click to Place
         if (Input.GetMouseButtonDown(0))
         {
-            HandleInput();
+            HandleInput(false);
+        }
+
+        // Right Click to Remove
+        if (Input.GetMouseButtonDown(1))
+        {
+            HandleInput(true);
         }
     }
 
-    private void HandleInput()
+    private void HandleInput(bool isRemoving)
     {
-        if (currentBuildingPrefab == null || gridManager == null) return;
+        if (gridManager == null) return;
 
-        // 1. Create a Ray from the camera through the mouse position
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
-        // 2. Cast the ray into the world
-        // We use 'Mathf.Infinity' to check as far as needed
         if (Physics.Raycast(ray, out hit, Mathf.Infinity))
         {
-            // 3. Convert the hit point (World Position) to Grid Coordinates
-            Vector2Int gridPos = gridManager.WorldToGridCoordinates(hit.point);
-
-            // 4. Check if we clicked on a valid tile (optional but good for safety)
-            TileData tile = gridManager.GetTileAt(gridPos);
-
-            if (tile != null)
+            // REMOVAL LOGIC
+            if (isRemoving)
             {
-                PlaceBuilding(gridPos);
+                // Check if we hit a building directly
+                BuildingAffector affector = hit.collider.GetComponent<BuildingAffector>();
+                if (affector != null)
+                {
+                    Destroy(affector.gameObject);
+                }
+                // Optional: Check if we hit a tile, then find the building on it (requires tracking)
+                // For now, clicking the building directly is easiest.
+            }
+            // PLACEMENT LOGIC
+            else if (currentBuildingPrefab != null)
+            {
+                Vector2Int gridPos = gridManager.WorldToGridCoordinates(hit.point);
+                TileData tile = gridManager.GetTileAt(gridPos);
+
+                if (tile != null)
+                {
+                    PlaceBuilding(gridPos);
+                }
             }
         }
     }
 
     private void PlaceBuilding(Vector2Int gridPos)
     {
-        // Calculate the world position for the building based on the grid coordinate
-        // This ensures it snaps exactly to the center/corner of the grid cell
+        // Check if there is already a building here? 
+        // For a hackathon, we can skip complex overlap checks if you want speed.
+
         Vector3 spawnPos = new Vector3(
             gridPos.x * gridManager.tileSize,
             0,

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,6 +10,9 @@ public class TileData : MonoBehaviour
     private Dictionary<Vector2Int, int> healthInfluences = new Dictionary<Vector2Int, int>();
 
     [SerializeField] private Renderer tileRenderer;
+
+    // THE SIGNAL: Other scripts can listen to this!
+    public event Action OnStateChanged;
 
     // We updated this to take a 'category' parameter
     public void AddInfluence(BuildingCategory category, Vector2Int buildingPos, int score)
@@ -53,6 +57,12 @@ public class TileData : MonoBehaviour
         return healthInfluences.Values.Max();
     }
 
+    // Helper for the House to get the color easily
+    public Color GetCurrentColor()
+    {
+        return tileRenderer.material.color;
+    }
+
     private void UpdateVisuals()
     {
         // Calculate Average
@@ -64,5 +74,9 @@ public class TileData : MonoBehaviour
 
         // 0 is Red, 100 is Green
         tileRenderer.material.color = Color.Lerp(Color.red, Color.green, averageScore / 100f);
+
+        // FIRE THE SIGNAL!
+        // "Hey everyone listening, my data just changed!"
+        OnStateChanged?.Invoke();
     }
 }
