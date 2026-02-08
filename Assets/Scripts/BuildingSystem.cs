@@ -11,33 +11,58 @@ public class BuildingSystem : MonoBehaviour
     public GameObject[] buildingPrefabs;
 
     // We keep track of which one is currently selected (starts at 0)
-    private int selectedIndex = 0;
+    private int selectedIndex = -1;
+
+    private void Start()
+    {
+        // CHANGE 2: Update UI to show nothing selected at start
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.UpdateSelectionUI(-1);
+        }
+    }
 
     private void Update()
     {
-        // KEYBOARD INPUT FOR SELECTION
+        // KEYBOARD INPUT
         // 1 -> Police (Index 0)
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
-            selectedIndex = 0;
-            Debug.Log("Selected: Police Station");
+            // Toggle Logic: If already 0, switch to -1. Otherwise, make it 0.
+            if (selectedIndex == 0) selectedIndex = -1;
+            else selectedIndex = 0;
+
+            if (UIManager.Instance != null) UIManager.Instance.UpdateSelectionUI(selectedIndex);
         }
         // 2 -> Hospital (Index 1)
         else if (Input.GetKeyDown(KeyCode.Alpha2))
         {
-            selectedIndex = 1;
-            Debug.Log("Selected: Hospital");
+            if (selectedIndex == 1) selectedIndex = -1;
+            else selectedIndex = 1;
+
+            if (UIManager.Instance != null) UIManager.Instance.UpdateSelectionUI(selectedIndex);
         }
         // 0 -> House (Index 2)
         else if (Input.GetKeyDown(KeyCode.Alpha0))
         {
-            selectedIndex = 2;
-            Debug.Log("Selected: House");
+            if (selectedIndex == 2) selectedIndex = -1;
+            else selectedIndex = 2;
+
+            if (UIManager.Instance != null) UIManager.Instance.UpdateSelectionUI(selectedIndex);
         }
 
-        // MOUSE INPUT FOR ACTIONS
-        if (Input.GetMouseButtonDown(0)) HandleInput(false); // Place
-        if (Input.GetMouseButtonDown(1)) HandleInput(true);  // Remove
+        // MOUSE INPUT
+        // We add a check: "selectedIndex >= 0" to ensure we only build if something is selected!
+        if (selectedIndex >= 0 && Input.GetMouseButtonDown(0))
+        {
+            HandleInput(false);
+        }
+
+        // Removal (Right Click) works regardless of selection
+        if (Input.GetMouseButtonDown(1))
+        {
+            HandleInput(true);
+        }
     }
 
     private void HandleInput(bool isRemoving)
@@ -72,7 +97,7 @@ public class BuildingSystem : MonoBehaviour
             else
             {
                 // Safety Check: Make sure our array isn't empty!
-                if (buildingPrefabs.Length > selectedIndex)
+                if (selectedIndex >= 0 && buildingPrefabs.Length > selectedIndex)
                 {
                     GameObject prefabToPlace = buildingPrefabs[selectedIndex];
 
