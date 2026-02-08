@@ -877,7 +877,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gridManager: {fileID: 695832609}
   mainCamera: {fileID: 330585545}
-  currentBuildingPrefab: {fileID: 5432469381262308174, guid: 953f392b34213e649a55142e45f7d438, type: 3}
+  buildingPrefabs:
+  - {fileID: 5432469381262308174, guid: 953f392b34213e649a55142e45f7d438, type: 3}
+  - {fileID: 5432469381262308174, guid: 2ed6f38882f2f4c4b95681b96dbbf4ec, type: 3}
+  - {fileID: 4574456530035480011, guid: 7a64ed7768dc2ef44a37f4a02a9a308e, type: 3}
 --- !u!4 &1515802734
 Transform:
   m_ObjectHideFlags: 0

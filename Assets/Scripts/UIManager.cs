@@ -19,7 +19,7 @@ public class UIManager : MonoBehaviour
         // 2. Get Money
         if (EconomyManager.Instance != null)
         {
-            moneyText.text = $"Money: ${EconomyManager.Instance.currentMoney}";
+            moneyText.text = $"Money: £{EconomyManager.Instance.currentMoney}";
         }
     }
 }

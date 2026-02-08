@@ -6,6 +6,7 @@ public class BuildingAffector : MonoBehaviour
     public BuildingCategory category;
     public int radius = 3;
     public int maxScore = 100; // The score at the very center
+    public int minScore = 20;
     public int cost = 100;
 
     private GridManager gridManager;
@@ -68,8 +69,10 @@ public class BuildingAffector : MonoBehaviour
         // 2. Invert it so 1 is center and 0 is edge
         float strength = 1f - normalizedDist;
 
-        // 3. Multiply by max score (and clamp to avoid negative numbers)
-        int finalScore = Mathf.RoundToInt(maxScore * strength);
-        return Mathf.Max(0, finalScore);
+        // 3. Lerp between Min and Max based on strength
+        // If strength is 0, we get minScore. If strength is 1, we get maxScore.
+        float blendedScore = Mathf.Lerp(minScore, maxScore, strength);
+
+        return Mathf.RoundToInt(blendedScore);
     }
 }

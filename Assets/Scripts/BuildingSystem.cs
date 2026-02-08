@@ -6,22 +6,38 @@ public class BuildingSystem : MonoBehaviour
     public GridManager gridManager;
     public Camera mainCamera;
 
-    [Header("Building to Place")]
-    public GameObject currentBuildingPrefab;
+    [Header("Building Palette")]
+    // This is the Array! It allows you to drag multiple prefabs here.
+    public GameObject[] buildingPrefabs;
+
+    // We keep track of which one is currently selected (starts at 0)
+    private int selectedIndex = 0;
 
     private void Update()
     {
-        // Left Click to Place
-        if (Input.GetMouseButtonDown(0))
+        // KEYBOARD INPUT FOR SELECTION
+        // 1 -> Police (Index 0)
+        if (Input.GetKeyDown(KeyCode.Alpha1))
         {
-            HandleInput(false);
+            selectedIndex = 0;
+            Debug.Log("Selected: Police Station");
+        }
+        // 2 -> Hospital (Index 1)
+        else if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            selectedIndex = 1;
+            Debug.Log("Selected: Hospital");
+        }
+        // 0 -> House (Index 2)
+        else if (Input.GetKeyDown(KeyCode.Alpha0))
+        {
+            selectedIndex = 2;
+            Debug.Log("Selected: House");
         }
 
-        // Right Click to Remove
-        if (Input.GetMouseButtonDown(1))
-        {
-            HandleInput(true);
-        }
+        // MOUSE INPUT FOR ACTIONS
+        if (Input.GetMouseButtonDown(0)) HandleInput(false); // Place
+        if (Input.GetMouseButtonDown(1)) HandleInput(true);  // Remove
     }
 
     private void HandleInput(bool isRemoving)
@@ -36,65 +52,57 @@ public class BuildingSystem : MonoBehaviour
             // REMOVAL LOGIC
             if (isRemoving)
             {
-                // Check if we hit a building directly
+                // 1. Check for Special Buildings
                 BuildingAffector affector = hit.collider.GetComponent<BuildingAffector>();
                 if (affector != null)
                 {
+                    if (EconomyManager.Instance != null) EconomyManager.Instance.AddMoney(affector.cost);
                     Destroy(affector.gameObject);
                 }
-                // Optional: Check if we hit a tile, then find the building on it (requires tracking)
-                // For now, clicking the building directly is easiest.
-            }
-            else if (currentBuildingPrefab != null)
-            {
-                // 1. Get the cost from the prefab we are trying to place
-                BuildingAffector affector = currentBuildingPrefab.GetComponent<BuildingAffector>();
-                int buildingCost = affector != null ? affector.cost : 0;
 
-                // 2. Check if we have enough money
-                if (EconomyManager.Instance != null && !EconomyManager.Instance.CanAfford(buildingCost))
+                // 2. Check for Houses
+                BuildingAffectable affectable = hit.collider.GetComponent<BuildingAffectable>();
+                if (affectable != null)
                 {
-                    Debug.Log("Not enough money!");
-                    return; // Stop here, don't place it
-                }
-
-                Vector2Int gridPos = gridManager.WorldToGridCoordinates(hit.point);
-                TileData tile = gridManager.GetTileAt(gridPos);
-
-                if (tile != null)
-                {
-                    PlaceBuilding(gridPos, buildingCost); // Pass the cost to the next function
+                    // Refund logic for houses could go here if they had a cost
+                    Destroy(affectable.gameObject);
                 }
             }
-        }
-        // PLACEMENT LOGIC
-        else if (currentBuildingPrefab != null)
-        {
-            // 1. Get the cost from the prefab we are trying to place
-            BuildingAffector affector = currentBuildingPrefab.GetComponent<BuildingAffector>();
-            int buildingCost = affector != null ? affector.cost : 0;
-
-            // 2. Check if we have enough money
-            if (EconomyManager.Instance != null && !EconomyManager.Instance.CanAfford(buildingCost))
+            // PLACEMENT LOGIC
+            else
             {
-                Debug.Log("Not enough money!");
-                return; // Stop here, don't place it
-            }
+                // Safety Check: Make sure our array isn't empty!
+                if (buildingPrefabs.Length > selectedIndex)
+                {
+                    GameObject prefabToPlace = buildingPrefabs[selectedIndex];
 
-            Vector2Int gridPos = gridManager.WorldToGridCoordinates(hit.point);
-            TileData tile = gridManager.GetTileAt(gridPos);
+                    // Get Cost
+                    BuildingAffector affector = prefabToPlace.GetComponent<BuildingAffector>();
+                    int buildingCost = affector != null ? affector.cost : 0;
+                    // Note: If houses don't have BuildingAffector, cost is 0, which is fine.
 
-            if (tile != null)
-            {
-                PlaceBuilding(gridPos, buildingCost); // Pass the cost to the next function
+                    // Check Money
+                    if (EconomyManager.Instance != null && !EconomyManager.Instance.CanAfford(buildingCost))
+                    {
+                        Debug.Log("Not enough money!");
+                        return;
+                    }
+
+                    Vector2Int gridPos = gridManager.WorldToGridCoordinates(hit.point);
+                    TileData tile = gridManager.GetTileAt(gridPos);
+
+                    if (tile != null)
+                    {
+                        PlaceBuilding(gridPos, prefabToPlace, buildingCost);
+                    }
+                }
             }
         }
     }
 
-    private void PlaceBuilding(Vector2Int gridPos, int cost)
+    private void PlaceBuilding(Vector2Int gridPos, GameObject prefab, int cost)
     {
-        // Check if there is already a building here? 
-        // For a hackathon, we can skip complex overlap checks if you want speed.
+        // Simple overlap check could go here
 
         Vector3 spawnPos = new Vector3(
             gridPos.x * gridManager.tileSize,
@@ -102,9 +110,8 @@ public class BuildingSystem : MonoBehaviour
             gridPos.y * gridManager.tileSize
         );
 
-        Instantiate(currentBuildingPrefab, spawnPos, Quaternion.identity);
+        Instantiate(prefab, spawnPos, Quaternion.identity);
 
-        // 3. Deduct the money
         if (EconomyManager.Instance != null)
         {
             EconomyManager.Instance.SpendMoney(cost);
