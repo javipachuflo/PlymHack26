@@ -10,9 +10,11 @@ public class UIManager : MonoBehaviour
     public TMP_Text moneyText;
 
     [Header("Selection UI")]
-    // Drag your 3 Green Ring images here!
-    // Order: 0 = Police, 1 = Hospital, 2 = House
     public GameObject[] selectionRings;
+
+    [Header("Inspector UI")]
+    public GameObject inspectorPanel; // The panel background
+    public TMP_Text statText;         // The text inside the panel
 
     private void Awake()
     {
@@ -26,19 +28,34 @@ public class UIManager : MonoBehaviour
             scoreText.text = $"City Score: {CityScoreManager.Instance.currentCityScore:F0}";
 
         if (EconomyManager.Instance != null)
-            moneyText.text = $"Money: £{EconomyManager.Instance.currentMoney}";
+            moneyText.text = $"Money: ${EconomyManager.Instance.currentMoney}";
     }
 
     public void UpdateSelectionUI(int index)
     {
-        // Loop through all rings
         for (int i = 0; i < selectionRings.Length; i++)
         {
             if (selectionRings[i] != null)
             {
-                // Turn ON if it matches the index, OFF if it doesn't
                 selectionRings[i].SetActive(i == index);
             }
         }
+    }
+
+    // NEW: Call this to show the house stats
+    public void ShowInspector(int health, int safety)
+    {
+        if (inspectorPanel != null) inspectorPanel.SetActive(true);
+
+        if (statText != null)
+        {
+            statText.text = $"House Stats:\nHealth: {health}\nSafety: {safety}";
+        }
+    }
+
+    // NEW: Call this to hide the panel
+    public void HideInspector()
+    {
+        if (inspectorPanel != null) inspectorPanel.SetActive(false);
     }
 }

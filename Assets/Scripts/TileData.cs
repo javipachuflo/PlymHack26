@@ -14,6 +14,8 @@ public class TileData : MonoBehaviour
     // THE SIGNAL: Other scripts can listen to this!
     public event Action OnStateChanged;
 
+    public GameObject occupiedObject;
+
     // We updated this to take a 'category' parameter
     public void AddInfluence(BuildingCategory category, Vector2Int buildingPos, int score)
     {

@@ -7,15 +7,13 @@ public class BuildingSystem : MonoBehaviour
     public Camera mainCamera;
 
     [Header("Building Palette")]
-    // This is the Array! It allows you to drag multiple prefabs here.
     public GameObject[] buildingPrefabs;
 
-    // We keep track of which one is currently selected (starts at 0)
+    // -1 means nothing is selected (Inspection Mode)
     private int selectedIndex = -1;
 
     private void Start()
     {
-        // CHANGE 2: Update UI to show nothing selected at start
         if (UIManager.Instance != null)
         {
             UIManager.Instance.UpdateSelectionUI(-1);
@@ -24,44 +22,49 @@ public class BuildingSystem : MonoBehaviour
 
     private void Update()
     {
-        // KEYBOARD INPUT
-        // 1 -> Police (Index 0)
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-        {
-            // Toggle Logic: If already 0, switch to -1. Otherwise, make it 0.
-            if (selectedIndex == 0) selectedIndex = -1;
-            else selectedIndex = 0;
-
-            if (UIManager.Instance != null) UIManager.Instance.UpdateSelectionUI(selectedIndex);
-        }
-        // 2 -> Hospital (Index 1)
-        else if (Input.GetKeyDown(KeyCode.Alpha2))
-        {
-            if (selectedIndex == 1) selectedIndex = -1;
-            else selectedIndex = 1;
-
-            if (UIManager.Instance != null) UIManager.Instance.UpdateSelectionUI(selectedIndex);
-        }
-        // 0 -> House (Index 2)
-        else if (Input.GetKeyDown(KeyCode.Alpha0))
-        {
-            if (selectedIndex == 2) selectedIndex = -1;
-            else selectedIndex = 2;
-
-            if (UIManager.Instance != null) UIManager.Instance.UpdateSelectionUI(selectedIndex);
-        }
+        // KEYBOARD INPUT (Toggle Logic)
+        if (Input.GetKeyDown(KeyCode.Alpha1)) ToggleSelection(0);
+        else if (Input.GetKeyDown(KeyCode.Alpha2)) ToggleSelection(1);
+        else if (Input.GetKeyDown(KeyCode.Alpha0)) ToggleSelection(2);
 
         // MOUSE INPUT
-        // We add a check: "selectedIndex >= 0" to ensure we only build if something is selected!
-        if (selectedIndex >= 0 && Input.GetMouseButtonDown(0))
+        // Left Click
+        if (Input.GetMouseButtonDown(0))
         {
             HandleInput(false);
         }
 
-        // Removal (Right Click) works regardless of selection
+        // Right Click (Removal)
         if (Input.GetMouseButtonDown(1))
         {
             HandleInput(true);
+        }
+
+        // ... inside Update() ...
+
+        // ESCAPE KEY (Cancel / Close)
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            selectedIndex = -1; // Deselect everything
+
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.UpdateSelectionUI(-1); // Turn off green rings
+                UIManager.Instance.HideInspector();       // Close the panel
+            }
+        }
+    }
+
+    private void ToggleSelection(int index)
+    {
+        if (selectedIndex == index) selectedIndex = -1; // Toggle Off
+        else selectedIndex = index; // Toggle On
+
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.UpdateSelectionUI(selectedIndex);
+            // Always hide the inspector when we switch tools
+            UIManager.Instance.HideInspector();
         }
     }
 
@@ -74,10 +77,15 @@ public class BuildingSystem : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit, Mathf.Infinity))
         {
-            // REMOVAL LOGIC
+            // --- REMOVAL LOGIC (Right Click) ---
             if (isRemoving)
             {
-                // 1. Check for Special Buildings
+                // 1. Clear the Tile
+                Vector2Int gridPos = gridManager.WorldToGridCoordinates(hit.point);
+                TileData tile = gridManager.GetTileAt(gridPos);
+                if (tile != null) tile.occupiedObject = null;
+
+                // 2. Destroy Object & Refund
                 BuildingAffector affector = hit.collider.GetComponent<BuildingAffector>();
                 if (affector != null)
                 {
@@ -85,40 +93,70 @@ public class BuildingSystem : MonoBehaviour
                     Destroy(affector.gameObject);
                 }
 
-                // 2. Check for Houses
                 BuildingAffectable affectable = hit.collider.GetComponent<BuildingAffectable>();
                 if (affectable != null)
                 {
-                    // Refund logic for houses could go here if they had a cost
                     Destroy(affectable.gameObject);
                 }
+
+                // Hide inspector if we destroy something
+                if (UIManager.Instance != null) UIManager.Instance.HideInspector();
             }
-            // PLACEMENT LOGIC
+            // --- LEFT CLICK LOGIC ---
             else
             {
-                // Safety Check: Make sure our array isn't empty!
-                if (selectedIndex >= 0 && buildingPrefabs.Length > selectedIndex)
+                // A. BUILDING MODE (Something selected)
+                if (selectedIndex >= 0)
                 {
-                    GameObject prefabToPlace = buildingPrefabs[selectedIndex];
-
-                    // Get Cost
-                    BuildingAffector affector = prefabToPlace.GetComponent<BuildingAffector>();
-                    int buildingCost = affector != null ? affector.cost : 0;
-                    // Note: If houses don't have BuildingAffector, cost is 0, which is fine.
-
-                    // Check Money
-                    if (EconomyManager.Instance != null && !EconomyManager.Instance.CanAfford(buildingCost))
+                    if (buildingPrefabs.Length > selectedIndex)
                     {
-                        Debug.Log("Not enough money!");
-                        return;
+                        GameObject prefabToPlace = buildingPrefabs[selectedIndex];
+
+                        BuildingAffector affector = prefabToPlace.GetComponent<BuildingAffector>();
+                        int buildingCost = affector != null ? affector.cost : 0;
+
+                        if (EconomyManager.Instance != null && !EconomyManager.Instance.CanAfford(buildingCost))
+                        {
+                            Debug.Log("Not enough money!");
+                            return;
+                        }
+
+                        Vector2Int gridPos = gridManager.WorldToGridCoordinates(hit.point);
+                        TileData tile = gridManager.GetTileAt(gridPos);
+
+                        // Check if tile is empty
+                        if (tile != null && tile.occupiedObject == null)
+                        {
+                            PlaceBuilding(gridPos, prefabToPlace, buildingCost);
+                        }
                     }
+                }
+                // B. INSPECTOR MODE (Nothing selected)
+                else
+                {
+                    // Check if we clicked a House
+                    BuildingAffectable house = hit.collider.GetComponent<BuildingAffectable>();
 
-                    Vector2Int gridPos = gridManager.WorldToGridCoordinates(hit.point);
-                    TileData tile = gridManager.GetTileAt(gridPos);
-
-                    if (tile != null)
+                    if (house != null)
                     {
-                        PlaceBuilding(gridPos, prefabToPlace, buildingCost);
+                        // Find the tile UNDER the house
+                        Vector2Int gridPos = gridManager.WorldToGridCoordinates(house.transform.position);
+                        TileData tile = gridManager.GetTileAt(gridPos);
+
+                        if (tile != null && UIManager.Instance != null)
+                        {
+                            // Get the data from the tile!
+                            int health = tile.GetMaxHealth();
+                            int safety = tile.GetMaxSafety();
+
+                            // Show it on UI
+                            UIManager.Instance.ShowInspector(health, safety);
+                        }
+                    }
+                    else
+                    {
+                        // If we clicked something else (like empty ground), hide the panel
+                        if (UIManager.Instance != null) UIManager.Instance.HideInspector();
                     }
                 }
             }
@@ -127,15 +165,19 @@ public class BuildingSystem : MonoBehaviour
 
     private void PlaceBuilding(Vector2Int gridPos, GameObject prefab, int cost)
     {
-        // Simple overlap check could go here
-
         Vector3 spawnPos = new Vector3(
             gridPos.x * gridManager.tileSize,
             0,
             gridPos.y * gridManager.tileSize
         );
 
-        Instantiate(prefab, spawnPos, Quaternion.identity);
+        GameObject newBuilding = Instantiate(prefab, spawnPos, Quaternion.identity);
+
+        TileData tile = gridManager.GetTileAt(gridPos);
+        if (tile != null)
+        {
+            tile.occupiedObject = newBuilding;
+        }
 
         if (EconomyManager.Instance != null)
         {
