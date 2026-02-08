@@ -3,8 +3,9 @@ using UnityEngine;
 public class BuildingAffector : MonoBehaviour
 {
     [Header("Settings")]
-    public int radius = 3; // How far the effect reaches (in tiles)
-    public int scoreValue = 100; // The score this building provides (e.g., Safety)
+    public BuildingCategory category;
+    public int radius = 3;
+    public int maxScore = 100; // The score at the very center
 
     private GridManager gridManager;
     private Vector2Int gridPosition;
@@ -12,17 +13,12 @@ public class BuildingAffector : MonoBehaviour
     private void Start()
     {
         gridManager = FindFirstObjectByType<GridManager>();
-        
-        // Snap to grid coordinates
         gridPosition = gridManager.WorldToGridCoordinates(transform.position);
-        
-        // Apply influence immediately upon placement
         UpdateInfluence(true);
     }
 
     private void OnDestroy()
     {
-        // Remove influence when deleted
         UpdateInfluence(false);
     }
 
@@ -30,29 +26,49 @@ public class BuildingAffector : MonoBehaviour
     {
         if (gridManager == null) return;
 
-        // Loop through a square area around the building
         for (int x = -radius; x <= radius; x++)
         {
             for (int y = -radius; y <= radius; y++)
             {
                 Vector2Int targetPos = new Vector2Int(gridPosition.x + x, gridPosition.y + y);
 
-                // Ask the GridManager for the tile at these coordinates
-                TileData tile = gridManager.GetTileAt(targetPos);
+                // Calculate distance (Euclidean is good for circular falloff)
+                float distance = Vector2Int.Distance(gridPosition, targetPos);
 
-                if (tile != null)
+                if (distance <= radius)
                 {
-                    if (isAdding)
+                    TileData tile = gridManager.GetTileAt(targetPos);
+
+                    if (tile != null)
                     {
-                        // Pass our own GridPosition as the ID so the tile knows who sent it
-                        tile.AddInfluence(gridPosition, scoreValue);
-                    }
-                    else
-                    {
-                        tile.RemoveInfluence(gridPosition);
+                        if (isAdding)
+                        {
+                            // Calculate the falloff score
+                            int distanceScore = CalculateScore(distance);
+                            tile.AddInfluence(category, gridPosition, distanceScore);
+                        }
+                        else
+                        {
+                            tile.RemoveInfluence(category, gridPosition);
+                        }
                     }
                 }
             }
         }
+    }
+
+    // New Helper Function
+    private int CalculateScore(float distance)
+    {
+        // 1. Get a value from 0 to 1 representing "how far are we?"
+        // 0 = center, 1 = edge
+        float normalizedDist = distance / radius;
+
+        // 2. Invert it so 1 is center and 0 is edge
+        float strength = 1f - normalizedDist;
+
+        // 3. Multiply by max score (and clamp to avoid negative numbers)
+        int finalScore = Mathf.RoundToInt(maxScore * strength);
+        return Mathf.Max(0, finalScore);
     }
 }

@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 6774875447279254658}
   - component: {fileID: 5271164139177339947}
   m_Layer: 0
-  m_Name: Police Station
+  m_Name: Hospital
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -66,7 +66,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 332e7dc32c4f3fb4baff9e897589fe59, type: 2}
+  - {fileID: 2100000, guid: 81c9acde188cb0e4fbf4cfc4fa536f16, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -121,6 +121,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4c7da4a76f1d724791f85c1b0a39406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  category: 0
-  radius: 3
+  category: 1
+  radius: 10
   maxScore: 100

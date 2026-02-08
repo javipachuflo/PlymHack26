@@ -1,57 +1,68 @@
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq; // Needed to easily find the Max value
+using System.Linq;
 
 public class TileData : MonoBehaviour
 {
-    // The "Heatmap": Stores which building (Vector2Int coordinates) provides what score (int)
-    // We use Vector2Int as the key because it's a unique ID for grid positions.
+    // Two separate "Heatmaps"
     private Dictionary<Vector2Int, int> safetyInfluences = new Dictionary<Vector2Int, int>();
+    private Dictionary<Vector2Int, int> healthInfluences = new Dictionary<Vector2Int, int>();
 
-    // Visuals
     [SerializeField] private Renderer tileRenderer;
 
-    // Call this when a building is placed near this tile
-    public void AddInfluence(Vector2Int buildingPos, int score)
+    // We updated this to take a 'category' parameter
+    public void AddInfluence(BuildingCategory category, Vector2Int buildingPos, int score)
     {
-        if (safetyInfluences.ContainsKey(buildingPos))
+        if (category == BuildingCategory.Safety)
         {
-            safetyInfluences[buildingPos] = score; // Update existing
+            if (safetyInfluences.ContainsKey(buildingPos)) safetyInfluences[buildingPos] = score;
+            else safetyInfluences.Add(buildingPos, score);
         }
-        else
+        else if (category == BuildingCategory.Health)
         {
-            safetyInfluences.Add(buildingPos, score); // Add new
+            if (healthInfluences.ContainsKey(buildingPos)) healthInfluences[buildingPos] = score;
+            else healthInfluences.Add(buildingPos, score);
         }
 
         UpdateVisuals();
     }
 
-    // Call this when a building is removed
-    public void RemoveInfluence(Vector2Int buildingPos)
+    public void RemoveInfluence(BuildingCategory category, Vector2Int buildingPos)
     {
-        if (safetyInfluences.ContainsKey(buildingPos))
+        if (category == BuildingCategory.Safety)
         {
-            safetyInfluences.Remove(buildingPos);
+            if (safetyInfluences.ContainsKey(buildingPos)) safetyInfluences.Remove(buildingPos);
+        }
+        else if (category == BuildingCategory.Health)
+        {
+            if (healthInfluences.ContainsKey(buildingPos)) healthInfluences.Remove(buildingPos);
         }
 
         UpdateVisuals();
     }
 
-    // The "Pull" logic: The tile calculates its own current max score
-    public int GetCurrentSafetyScore()
+    public int GetMaxSafety()
     {
         if (safetyInfluences.Count == 0) return 0;
-
-        // Linq magic: looks at all values and returns the highest one
         return safetyInfluences.Values.Max();
+    }
+
+    public int GetMaxHealth()
+    {
+        if (healthInfluences.Count == 0) return 0;
+        return healthInfluences.Values.Max();
     }
 
     private void UpdateVisuals()
     {
-        float score = GetCurrentSafetyScore();
+        // Calculate Average
+        float safety = GetMaxSafety();
+        float health = GetMaxHealth();
 
-        // Simple visual debugging: 0 is Red, 100 is Green
-        // We divide by 100f to get a 0-1 value for Lerp
-        tileRenderer.material.color = Color.Lerp(Color.red, Color.green, score / 100f);
+        // If you add more metrics later, increase this divisor
+        float averageScore = (safety + health) / 2f;
+
+        // 0 is Red, 100 is Green
+        tileRenderer.material.color = Color.Lerp(Color.red, Color.green, averageScore / 100f);
     }
 }
