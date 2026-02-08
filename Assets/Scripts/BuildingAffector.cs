@@ -6,6 +6,7 @@ public class BuildingAffector : MonoBehaviour
     public BuildingCategory category;
     public int radius = 3;
     public int maxScore = 100; // The score at the very center
+    public int cost = 100;
 
     private GridManager gridManager;
     private Vector2Int gridPosition;

@@ -60,4 +60,14 @@ public class CityScoreManager : MonoBehaviour
 
         Debug.Log($"City Score Updated: {currentCityScore}");
     }
+
+    public float GetTotalTaxScore()
+    {
+        float totalScore = 0;
+        foreach (var house in allHouses)
+        {
+            totalScore += house.GetScore();
+        }
+        return totalScore;
+    }
 }
